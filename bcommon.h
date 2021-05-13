@@ -16,6 +16,8 @@ typedef struct msgdata {
     uint8_t val[0];
 } msg_data_t;
 
+#define MAX_IP_ADDR_LEN (INET6_ADDRSTRLEN + 6)
+char* bp2p_common_parse_addr (const struct sockaddr *addr_sa, char *str_addr, int max_len);
 
 
 

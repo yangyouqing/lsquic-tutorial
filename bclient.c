@@ -26,6 +26,7 @@
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 #include "lsquic.h"
+#include "bcommon.h"
 
 
 static FILE *s_log_fh;
@@ -223,6 +224,7 @@ tut_packets_out_v0 (void *packets_out_ctx, const struct lsquic_out_spec *specs,
     unsigned n;
     int fd, s = 0;
     struct msghdr msg;
+    char ipaddr[MAX_IP_ADDR_LEN] = {0};
 
     if (0 == count)
         return 0;
@@ -247,6 +249,9 @@ tut_packets_out_v0 (void *packets_out_ctx, const struct lsquic_out_spec *specs,
             break;
         }
         LOG("tut_packets_out_v0 sendmsg done: %s", strerror(errno));
+        
+        bp2p_common_parse_addr((struct sockaddr *) specs[n].dest_sa, ipaddr, sizeof (ipaddr));
+        printf ("send to %s\n", ipaddr);
         ++n;
     }
     while (n < count);
@@ -984,6 +989,13 @@ tut_read_socket (EV_P_ ev_io *w, int revents)
     ecn = 0;
     tut_proc_ancillary(&msg, &local_sas, &ecn);
 
+    char local_ip[MAX_IP_ADDR_LEN] = {0};
+    char remote_ip[MAX_IP_ADDR_LEN] = {0};
+    bp2p_common_parse_addr((struct sockaddr *) &local_sas, local_ip, sizeof (local_ip));
+    bp2p_common_parse_addr((struct sockaddr *) &peer_sas, remote_ip, sizeof (remote_ip));
+    printf ("[%s] recv msg from [%s]\n", local_ip, remote_ip);
+
+
     (void) lsquic_engine_packet_in(tut->tut_engine, buf, nread,
         (struct sockaddr *) &local_sas,
         (struct sockaddr *) &peer_sas,
@@ -1258,6 +1270,10 @@ main (int argc, char **argv)
         perror("bind");
         exit(EXIT_FAILURE);
     }
+
+    char local_ip[MAX_IP_ADDR_LEN] = {0};
+    bp2p_common_parse_addr((struct sockaddr *) &tut.tut_local_sas, local_ip, sizeof(local_ip));
+    printf ("local ip: %s\n", local_ip);
     ev_init(&tut.tut_timer, tut_timer_expired);
     ev_init(&tut.tut_timer_delaysend, tut_timer_delaysend);
 
